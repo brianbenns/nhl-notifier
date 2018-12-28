@@ -16,10 +16,11 @@ except FileNotFoundError:
 
 IFTTT_KEY = private_file.readline().strip()
 MAX_DELAY = 600
-MIN_DELAY = 20
+MIN_DELAY = 1
 
 NHL = True
-ECHL = True
+ECHL = False
+
 
 private_file.close()
 
@@ -158,7 +159,7 @@ class NHLTeams:
                  "Florida Panthers": "FLA",
                  "Los Angeles Kings": "LAK",
                  "Minnesota Wild": "MIN",
-                 "Montreal Canadiens": "MTL",
+                 "Montréal Canadiens": "MTL",
                  "New Jersey Devils": "NJD",
                  "Nashville Predators": "NSH",
                  "New York Islanders": "NYI",
@@ -181,7 +182,7 @@ nhl_games = dict()
 echl_games = dict()
 
 
-def check_nhl():
+def check_nhl(team_filter=None):
     try:
         delay = MAX_DELAY
         with urllib.request.urlopen('https://statsapi.web.nhl.com/api/v1/schedule?expand=schedule.linescore') as response:
@@ -194,6 +195,12 @@ def check_nhl():
         for game in json_data['dates'][0]['games']:
             game_pk = game['gamePk']
             game_date = dateutil.parser.parse(game['gameDate'])
+            if team_filter and len(team_filter) > 0:
+                home = game['teams']['home']['team']['name']
+                away = game['teams']['away']['team']['name']
+                if home not in team_filter and away not in team_filter:
+                    #print ("Filtered out {} vs {}".format(away, home))
+                    continue
             if game_pk not in nhl_games:
                 nhl_games[game_pk] = NHLGame(game['teams']['home']['team']['name'],
                                              game['teams']['away']['team']['name'],
@@ -268,15 +275,25 @@ def check_echl():
 
 # check_echl()
 
-while True:
-    delay_for_repeat = MAX_DELAY
-    # NHL
-    if NHL:
-        delay_for_repeat = min(delay_for_repeat, check_nhl())
-    if ECHL:
-        delay_for_repeat = min(delay_for_repeat, check_echl())
-    sys.stdout.flush()
-    time.sleep(delay_for_repeat)
+if __name__ == "__main__":
+    if 'TEAM_FILTERS' in os.environ:       
+        team_filter_string = os.environ['TEAM_FILTERS']
+        team_filter = []
+        for team in team_filter_string.split(','):
+            team_filter.append(team.replace("_", " "))
+    else:
+        team_filter = None
+    print("Looking at just these teams: {}".format(team_filter))
+    while True:
+        delay_for_repeat = MAX_DELAY
+        # NHL
+        if NHL:
+            delay_for_repeat = min(delay_for_repeat, check_nhl(team_filter))
+        if ECHL:
+            delay_for_repeat = min(delay_for_repeat, check_echl())
+        sys.stdout.flush()
+        time.sleep(delay_for_repeat)
+
 
 
 
