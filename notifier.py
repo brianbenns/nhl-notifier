@@ -6,7 +6,7 @@ import urllib.request
 import json
 import time
 import dateutil.parser
-
+import requests
 # You need a file named private_key in order for this to work
 try:
     private_file = open('private_key')
@@ -17,7 +17,9 @@ except FileNotFoundError:
 IFTTT_KEY = private_file.readline().strip()
 MAX_DELAY = 600
 MIN_DELAY = 1
-
+BRIDGE_IP = os.environ['BRIDGE_IP']
+BRIDGE_USER = os.environ['BRIDGE_USER']
+LIGHT_ID = os.environ['LIGHT_ID']
 NHL = True
 ECHL = False
 
@@ -114,6 +116,21 @@ class Team:
                 self.notify_of_power_play()
                 self.__power_play_count = value
 
+    def get_current_state(self):
+        notification = 'http://{bridge_ip}/api/{bridge_user}/lights/{light_id}'.format(
+            bridge_ip=BRIDGE_IP, bridge_user=BRIDGE_USER, light_id=LIGHT_ID
+        )
+                
+        with urllib.request.urlopen(notification) as notify:
+            raw_response = notify.read()
+        state = json.loads(raw_response)['state']
+        return state
+    def set_state(self, state):
+        url = notification = 'http://{bridge_ip}/api/{bridge_user}/lights/{light_id}/state'.format(
+            bridge_ip=BRIDGE_IP, bridge_user=BRIDGE_USER, light_id=LIGHT_ID
+        )
+        body = json.dumps(state)
+        r = requests.put(url, data=body)
     def notify_of_score(self):
         print(self.last_score)
         print('SCORE', self.team_abbr)
@@ -121,6 +138,8 @@ class Team:
         preamble = ""
         if self.league != 'nhl':
             preamble = self.league+"_"
+        
+        current_state = self.get_current_state()
         notification = ('https://maker.ifttt.com/trigger/'
                         '{preamble}{team}_score/with/key/{ifttt}'.format(team=self.team_abbr_lower,
                                                                          ifttt=IFTTT_KEY,
@@ -128,6 +147,8 @@ class Team:
         print('Sending', notification)
         with urllib.request.urlopen(notification) as notify:
             raw_response = notify.read()
+        time.sleep(25)
+        self.set_state(current_state)
 
     def notify_of_power_play(self):
         print('PP', self.team_abbr)
@@ -276,6 +297,11 @@ def check_echl():
 # check_echl()
 
 if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        if sys.argv[1] == "test_notify":
+            devils = Team('New Jersey Devils', 0)
+            time.sleep(5)
+            devils.last_score = 1
     if 'TEAM_FILTERS' in os.environ:       
         team_filter_string = os.environ['TEAM_FILTERS']
         team_filter = []
