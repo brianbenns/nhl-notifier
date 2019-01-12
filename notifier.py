@@ -22,7 +22,7 @@ BRIDGE_USER = os.environ['BRIDGE_USER']
 LIGHT_ID = os.environ['LIGHT_ID']
 ALBUM =  os.environ['SPOTIFY_ALBUM']
 SONG_NUM = (int(os.environ['SPOTIFY_SONG_NUM']))-1
-TOKEN = os.environ['SPOTIFY_TOKEN']
+REFRESH_TOKEN = os.environ['SPOTIFY_TOKEN']
 DEVICE_ID = os.environ['SPOTIFY_DEVICE_ID']
 
 NHL = True
@@ -84,6 +84,7 @@ class Team:
         self.team = None
         self.__power_play_count = None
         self.power_play_count = None
+        self.spotify_token = None
 
     @property
     def last_score(self):
@@ -120,8 +121,16 @@ class Team:
             if value > self.__power_play_count:
                 self.notify_of_power_play()
                 self.__power_play_count = value
-    def play_spotify_song(self):
-        headers={"Authorization": "Bearer {}".format(TOKEN), 
+    def refresh_spotify_token(self):
+        headers = {"Authorization": "Basic Njc5NjAwMzUwODQ5NDM2NWEyN2FiNTI5MzZkNjFjYWU6YzUyOGY0NjhiYTM5NGQzMGJjNDgwMWYzMDY1M2VjNWM="}
+        payload = {"grant_type": "refresh_token", "refresh_token": REFRESH_TOKEN}
+        r = requests.post("https://accounts.spotify.com/api/token", headers=headers, data=payload)
+        response_dict = json.loads(r.text)
+        print(response_dict["access_token"])
+        return response_dict["access_token"]
+    def play_spotify_song(self, token):
+        
+        headers={"Authorization": "Bearer {}".format(token), 
                  "Content-Type": "application/json", 
                  "Accept": "application/json"}
         body = {"context_uri":"{}".format(ALBUM), 
@@ -132,8 +141,8 @@ class Team:
         
         r = requests.put(url, headers=headers, data=json.dumps(body))
         print(r.text)   
-    def stop_spotify_song(self):
-        headers={"Authorization": "Bearer {}".format(TOKEN), 
+    def stop_spotify_song(self, token):
+        headers={"Authorization": "Bearer {}".format(token), 
                  "Content-Type": "application/json", 
                  "Accept": "application/json"}
         body = {}
@@ -164,7 +173,8 @@ class Team:
             preamble = self.league+"_"
         
         current_state = self.get_current_state()
-        self.play_spotify_song()
+        token = self.refresh_spotify_token()
+        self.play_spotify_song(token)
         notification = ('https://maker.ifttt.com/trigger/'
                         '{preamble}{team}_score/with/key/{ifttt}'.format(team=self.team_abbr_lower,
                                                                          ifttt=IFTTT_KEY,
@@ -173,7 +183,7 @@ class Team:
         with urllib.request.urlopen(notification) as notify:
             raw_response = notify.read()
         time.sleep(25)
-        self.stop_spotify_song()
+        self.stop_spotify_song(token)
         self.set_state(current_state)
 
     def notify_of_power_play(self):

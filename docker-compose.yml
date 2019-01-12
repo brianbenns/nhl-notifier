@@ -9,6 +9,6 @@ services:
       - BRIDGE_USER=Q-SvabD65raZTo9R65pMdNJeSc4itnZ3Y5jwrI98
       - SPOTIFY_ALBUM=spotify:album:1gsyJWUvwjnsNgYUxpOfLR
       - SPOTIFY_SONG_NUM=7
-      - SPOTIFY_TOKEN=BQBJv9e-h4WxvsxN0InAuj6XNOhxlbdZeAv61gZFChAEjLLSQVi-btVFyHtbGlrpXdyyXdtXN6toDZCb3Q26waFKb1RR5avUHykVwfHVsDewcwUSkcXP98trUs_BYNQPqxopCvaPpZX-PYi-yC1s1UhA","token_type":"Bearer","expires_in":3600,"refresh_token":"AQDpCnqmlEGo48mwtJokRJBD4SdKDBxubyj1CLFvAuIDgGNbplfP627EXfUyJ8pmrWw1rnTukCq2eAVi5uCs3gSQy4PWDqnKa0yUBtGIC-ZUIy_G-Er6kG5oYdKmIRLd-9oz8A
+      - SPOTIFY_TOKEN=AQDpCnqmlEGo48mwtJokRJBD4SdKDBxubyj1CLFvAuIDgGNbplfP627EXfUyJ8pmrWw1rnTukCq2eAVi5uCs3gSQy4PWDqnKa0yUBtGIC-ZUIy_G-Er6kG5oYdKmIRLd-9oz8A
       - SPOTIFY_DEVICE_ID=8a802d0bfa7189b17a07de69df207f37451e7d3b
     command: ["python", "/app/notifier.py", "test_notify"]
