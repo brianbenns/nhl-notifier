@@ -20,6 +20,11 @@ MIN_DELAY = 1
 BRIDGE_IP = os.environ['BRIDGE_IP']
 BRIDGE_USER = os.environ['BRIDGE_USER']
 LIGHT_ID = os.environ['LIGHT_ID']
+ALBUM =  os.environ['SPOTIFY_ALBUM']
+SONG_NUM = (int(os.environ['SPOTIFY_SONG_NUM']))-1
+TOKEN = os.environ['SPOTIFY_TOKEN']
+DEVICE_ID = os.environ['SPOTIFY_DEVICE_ID']
+
 NHL = True
 ECHL = False
 
@@ -115,7 +120,26 @@ class Team:
             if value > self.__power_play_count:
                 self.notify_of_power_play()
                 self.__power_play_count = value
+    def play_spotify_song(self):
+        headers={"Authorization": "Bearer {}".format(TOKEN), 
+                 "Content-Type": "application/json", 
+                 "Accept": "application/json"}
+        body = {"context_uri":"{}".format(ALBUM), 
+                "offset": {"position": SONG_NUM},  
+                "position_ms": 0}
+        url = "https://api.spotify.com/v1/me/player/play?device_id={}".format(
+            DEVICE_ID)
+        
+        r = requests.put(url, headers=headers, data=json.dumps(body))
+        print(r.text)   
+    def stop_spotify_song(self):
+        headers={"Authorization": "Bearer {}".format(TOKEN), 
+                 "Content-Type": "application/json", 
+                 "Accept": "application/json"}
+        body = {}
+        url = "https://api.spotify.com/v1/me/player/pause"
 
+        requests.put(url, headers=headers, data=json.dumps(body))
     def get_current_state(self):
         notification = 'http://{bridge_ip}/api/{bridge_user}/lights/{light_id}'.format(
             bridge_ip=BRIDGE_IP, bridge_user=BRIDGE_USER, light_id=LIGHT_ID
@@ -140,6 +164,7 @@ class Team:
             preamble = self.league+"_"
         
         current_state = self.get_current_state()
+        self.play_spotify_song()
         notification = ('https://maker.ifttt.com/trigger/'
                         '{preamble}{team}_score/with/key/{ifttt}'.format(team=self.team_abbr_lower,
                                                                          ifttt=IFTTT_KEY,
@@ -148,6 +173,7 @@ class Team:
         with urllib.request.urlopen(notification) as notify:
             raw_response = notify.read()
         time.sleep(25)
+        self.stop_spotify_song()
         self.set_state(current_state)
 
     def notify_of_power_play(self):
