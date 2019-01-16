@@ -162,6 +162,7 @@ class Team:
         url = notification = 'http://{bridge_ip}/api/{bridge_user}/lights/{light_id}/state'.format(
             bridge_ip=BRIDGE_IP, bridge_user=BRIDGE_USER, light_id=LIGHT_ID
         )
+        state['alert'] = "none"
         body = json.dumps(state)
         r = requests.put(url, data=body)
     def notify_of_score(self):
@@ -252,26 +253,25 @@ def check_nhl(team_filter=None):
         for game in json_data['dates'][0]['games']:
             game_pk = game['gamePk']
             game_date = dateutil.parser.parse(game['gameDate'])
-            if team_filter and len(team_filter) > 0:
-                home = game['teams']['home']['team']['name']
-                away = game['teams']['away']['team']['name']
-                if home not in team_filter and away not in team_filter:
-                    #print ("Filtered out {} vs {}".format(away, home))
-                    continue
             if game_pk not in nhl_games:
                 nhl_games[game_pk] = NHLGame(game['teams']['home']['team']['name'],
                                              game['teams']['away']['team']['name'],
                                              game['teams']['home']['score'],
                                              game['teams']['away']['score'],
                                              game_date)
+                                        
             nhl_games[game_pk].game_status = game['status']['abstractGameState']
-            nhl_games[game_pk].home.last_score = game['teams']['home']['score']
-            nhl_games[game_pk].away.last_score = game['teams']['away']['score']
-            nhl_games[game_pk].home.in_power_play = game['linescore']['teams']['home']['powerPlay']
-            nhl_games[game_pk].away.in_power_play = game['linescore']['teams']['away']['powerPlay']
-            # print(game['teams']['away']['team']['name'], game['teams']['away']['score'])
-            # print(game['teams']['home']['team']['name'], game['teams']['home']['score'])
-
+            if team_filter and len(team_filter) > 0:
+                home = game['teams']['home']['team']['name']
+                away = game['teams']['away']['team']['name']
+                if home in team_filter: 
+                    nhl_games[game_pk].home.last_score = game['teams']['home']['score']
+                    nhl_games[game_pk].home.in_power_play = game['linescore']['teams']['home']['powerPlay']
+                elif away in team_filter:
+                    nhl_games[game_pk].away.last_score = game['teams']['away']['score']
+                    nhl_games[game_pk].away.in_power_play = game['linescore']['teams']['away']['powerPlay']
+                else:
+                    continue
         for k in list(nhl_games.keys()):
             d = nhl_games[k].time_delay()
             if not d:
